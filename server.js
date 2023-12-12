@@ -18,7 +18,9 @@ const db = mysql.createConnection({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_DATABASE || "db_upcycle",
+  port: process.env.DB_PORT || 3306, 
 });
+
 
 db.connect((err) => {
   if (err) {
