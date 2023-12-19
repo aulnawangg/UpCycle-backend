@@ -1,17 +1,18 @@
-const { RecyclingHistory } = require('../models');
+const db = require('../db');
 
 const addRecyclingHistory = async (req, res) => {
   try {
     const { wasteImage, recycledProduct } = req.body;
-    const newHistory = await RecyclingHistory.create({
-      wasteImage,
-      recycledProduct,
-    });
+    
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('INSERT INTO RecyclingHistories (wasteImage, recycledProduct) VALUES (?, ?)', [wasteImage, recycledProduct]);
+
+    const newHistoryId = result.insertId;
 
     res.json({
       success: true,
       message: 'Recycling history added successfully',
-      historyEntry: newHistory,
+      historyEntry: { id: newHistoryId, wasteImage, recycledProduct },
     });
   } catch (error) {
     console.error('Failed to add recycling history:', error);
@@ -22,11 +23,11 @@ const addRecyclingHistory = async (req, res) => {
 const deleteRecyclingHistory = async (req, res) => {
   try {
     const historyId = req.params.historyId;
-    const deletedHistory = await RecyclingHistory.destroy({
-      where: { id: historyId },
-    });
+    
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('DELETE FROM RecyclingHistories WHERE id = ?', [historyId]);
 
-    if (deletedHistory) {
+    if (result.affectedRows > 0) {
       res.json({
         success: true,
         message: `Recycling history with ID ${historyId} deleted`,
@@ -43,9 +44,12 @@ const deleteRecyclingHistory = async (req, res) => {
 const getRecyclingHistoryById = async (req, res) => {
   try {
     const historyId = req.params.historyId;
-    const recyclingHistory = await RecyclingHistory.findByPk(historyId);
+    
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('SELECT * FROM RecyclingHistories WHERE id = ?', [historyId]);
 
-    if (recyclingHistory) {
+    if (result.length > 0) {
+      const recyclingHistory = result[0];
       res.json({
         success: true,
         message: `Recycling history with ID ${historyId} retrieved successfully`,
@@ -60,18 +64,21 @@ const getRecyclingHistoryById = async (req, res) => {
   }
 };
 
-  const getAllRecyclingHistories = async (req, res) => {
-    try {
-      const recyclingHistories = await RecyclingHistory.findAll();
-  
-      res.json({
-        success: true,
-        message: 'All recycling histories retrieved successfully',
-        recyclingHistories,
-      });
-    } catch (error) {
-      console.error('Failed to retrieve all recycling histories:', error);
-      res.status(500).json({ success: false, error: 'Failed to retrieve all recycling histories' });
-    }
-  };
-  module.exports = { addRecyclingHistory, deleteRecyclingHistory, getRecyclingHistoryById, getAllRecyclingHistories };
+const getAllRecyclingHistories = async (req, res) => {
+  try {
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('SELECT * FROM RecyclingHistories');
+
+    res.json({
+      success: true,
+      message: 'All recycling histories retrieved successfully',
+      recyclingHistories: result,
+    });
+  } catch (error) {
+    console.error('Failed to retrieve all recycling histories:', error);
+    res.status(500).json({ success: false, error: 'Failed to retrieve all recycling histories' });
+  }
+};
+
+// Export fungsi-fungsi yang telah diubah
+module.exports = { addRecyclingHistory, deleteRecyclingHistory, getRecyclingHistoryById, getAllRecyclingHistories };

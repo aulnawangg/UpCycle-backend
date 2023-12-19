@@ -1,26 +1,26 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require("validator");
-const { User } = require('../models');
+const db = require('../db');
 
 
 const getUserList = async (req, res) => {
   try {
-    const { userId } = req.params; 
+    const userId = req.params.userId;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const user = await User.findByPk(userId, {
-      attributes: ['id', 'username', 'email'],
-    });
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('SELECT id, username, email FROM Users WHERE id = ?', [userId]);
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (result.length > 0) {
+      const user = result[0];
+      res.json({ message: 'Pengguna berhasil diambil', user });
+    } else {
+      res.status(404).json({ error: 'User not found' });
     }
-
-    res.json({ message: 'Pengguna berhasil diambil', user });
   } catch (error) {
     console.error('Gagal mengambil pengguna:', error);
     res.status(500).json({ error: 'Gagal mengambil pengguna' });
@@ -29,9 +29,10 @@ const getUserList = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll();
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('SELECT * FROM Users');
 
-    res.json({ message: 'Data semua pengguna berhasil diambil', users });
+    res.json({ message: 'Data semua pengguna berhasil diambil', users: result });
   } catch (error) {
     console.error('Gagal mengambil data semua pengguna:', error);
     res.status(500).json({ error: 'Gagal mengambil data semua pengguna' });
@@ -42,11 +43,10 @@ const updateUser = async (req, res) => {
   const { userId, newData } = req.body;
 
   try {
-    const updatedUser = await User.update(newData, {
-      where: { id: userId },
-    });
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('UPDATE Users SET ? WHERE id = ?', [newData, userId]);
 
-    if (updatedUser[0] === 1) {
+    if (result.affectedRows === 1) {
       res.json({ message: 'Data pengguna berhasil diperbarui', updatedUser: newData });
     } else {
       res.status(404).json({ error: 'User not found' });
@@ -60,17 +60,11 @@ const updateUser = async (req, res) => {
 const updateUserImage = async (req, res) => {
   const { userId, newImage } = req.body;
 
-  console.log('Received userId:', userId);
-  console.log('Received newImage:', newImage);
-
   try {
-    const [rowCount] = await User.update({ image: newImage }, {
-      where: { id: userId },
-    });
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('UPDATE Users SET image = ? WHERE id = ?', [newImage, userId]);
 
-    console.log('Rows affected:', rowCount);
-
-    if (rowCount === 1) {
+    if (result.affectedRows === 1) {
       res.json({ message: 'Gambar pengguna berhasil diperbarui', updatedImage: newImage });
     } else {
       res.status(404).json({ error: 'User not found' });
@@ -86,31 +80,27 @@ const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Validasi data masukan 
+    // Validasi data masukan
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Harap isi semua field' });
     }
-
 
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Format email tidak valid' });
     }
 
-  
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await getUserByEmail(email);
+
     if (existingUser) {
       return res.status(400).json({ error: 'Email sudah terdaftar' });
     }
 
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
-  
-    const newUser = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-    });
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('INSERT INTO Users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
+
+    const newUser = { id: result.insertId, username, email };
 
     res.json({ message: 'Pendaftaran pengguna berhasil', user: newUser });
   } catch (error) {
@@ -132,30 +122,22 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Format email tidak valid' });
     }
 
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
+    const user = await getUserByEmail(email);
 
     if (user) {
-      
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (isPasswordValid) {
-       
-        const token = jwt.sign({ userId: user.id }, 'ch2-ps221', {
-          expiresIn: '1h',
-        });
+        const token = generateToken(user.id);
         res.json({ message: 'Login berhasil', token });
       } else {
-     
         res.status(401).json({ error: 'Email atau password salah' });
       }
     } else {
-   
       res.status(401).json({ error: 'Email atau password salah' });
     }
   } catch (error) {
@@ -175,46 +157,43 @@ const changePassword = async (req, res) => {
 
     if (!newPassword || newPassword.length < 8) {
       return res.status(400).json({
-        error: "Password Baru Minimal 8 Kalimat"
+        error: "Password Baru Minimal 8 Karakter"
       });
     }
 
-  
-    if (!/[A-Z]/.test(newPassword)) {
-      return res.status(400).json({
-        error: "Password Baru Minimal 1 Huruf Kapital"
-      });
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-      return res.status(400).json({
-        error: "Password Baru Minimal 1 Spesial Karakter"
-      });
-    }
-
-   
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Perbarui password pengguna berdasarkan userId atau email
-    const updatedUser = await User.update(
-      { password: hashedPassword },
-      {
-        where: {
-          [userId ? "id" : "email"]: userId || email
-        }
-      }
-    );
+    // Gunakan parameterized query untuk mencegah SQL injection
+    const [result] = await db.query('UPDATE Users SET password = ? WHERE ?', [hashedPassword, userId ? { id: userId } : { email: email }]);
 
-    if (updatedUser[0] === 1) {
-      return res.json({ message: "Password Berhasil Diperbaharui" });
+    if (result.affectedRows === 1) {
+      return res.json({ message: "Password Berhasil Diperbarui" });
     } else {
       return res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
     console.error("Gagal Memperbarui Password:", error);
     res.status(500).json({ error: "Gagal Memperbarui Password" });
-  };
+  }
+};
 
+// Fungsi helper untuk mendapatkan pengguna berdasarkan email
+const getUserByEmail = async (email) => {
+  // Gunakan parameterized query untuk mencegah SQL injection
+  const [result] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
+  return result.length > 0 ? result[0] : null;
+};
+
+// Fungsi helper untuk validasi email
+const isValidEmail = (email) => {
+  return validator.isEmail(email);
+};
+
+// Fungsi helper untuk menghasilkan token JWT
+const generateToken = (userId) => {
+  return jwt.sign({ userId: userId }, 'ch2-ps221', {
+    expiresIn: '1h',
+  });
 };
   
   module.exports = {

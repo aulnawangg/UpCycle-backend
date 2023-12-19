@@ -1,29 +1,41 @@
-'use strict';
-const { Model } = require('sequelize');
-
-module.exports = (sequelize, DataTypes) => {
-  class RecyclingHistory extends Model {
-    static associate(models) {
-      // Define associations here if needed
-    }
+class RecyclingHistory {
+  constructor(db) {
+    this.db = db;
+    this.init();
   }
 
-  RecyclingHistory.init(
-    {
+  init() {
+    this.RecyclingHistory = this.db.define('RecyclingHistory', {
       wasteImage: {
-        type: DataTypes.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
       },
       recycledProduct: {
-        type: DataTypes.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
       },
-    },
-    {
-      sequelize,
-      modelName: 'RecyclingHistory',
-    }
-  );
+      userId: {
+        type: 'INT',
+        allowNull: false,
+      },
+    });
+  }
 
-  return RecyclingHistory;
-};
+  async findAll() {
+    return this.RecyclingHistory.findAll();
+  }
+
+  async findByPk(id) {
+    return this.RecyclingHistory.findByPk(id);
+  }
+
+  async create(data) {
+    return this.RecyclingHistory.create(data);
+  }
+
+  async destroy(options) {
+    return this.RecyclingHistory.destroy(options);
+  }
+}
+
+module.exports = RecyclingHistory;
