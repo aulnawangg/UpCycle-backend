@@ -8,7 +8,7 @@ const recyclingHistoryRoutes = require('./routes/recyclingHistoryRoutes');
 const db = require('./db');
 
 const app = express();
-const port = 8080;
+const port = 8081;
 
 app.use(bodyParser.json());
 
