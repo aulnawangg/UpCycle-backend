@@ -1,24 +1,48 @@
+const { Storage } = require('@google-cloud/storage');
 const db = require('../db');
+
+// Inisialisasi klien Cloud Storage
+const storage = new Storage();
+
+const bucketName = 'bucket_upcycle'; // Ganti dengan nama bucket Cloud Storage Anda
 
 const addRecyclingHistory = async (req, res) => {
   try {
-    const { wasteImage, recycledProduct } = req.body;
-    
-    // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('INSERT INTO recyclinghistories (wasteImage, recycledProduct) VALUES (?, ?)', [wasteImage, recycledProduct]);
+    const { recycledProduct } = req.body;
+    const wasteImage = req.file; // req.file akan berisi informasi tentang file gambar yang diunggah
 
-    const newHistoryId = result.insertId;
+    // Upload gambar ke Cloud Storage
+    const imageBlob = storage.bucket(bucketName).file(wasteImage.originalname);
+    const blobStream = imageBlob.createWriteStream();
 
-    res.json({
-      success: true,
-      message: 'Recycling history added successfully',
-      historyEntry: { id: newHistoryId, wasteImage, recycledProduct },
+    blobStream.on('error', (err) => {
+      console.error('Error uploading to Cloud Storage:', err);
+      res.status(500).json({ success: false, error: 'Failed to upload image to Cloud Storage' });
     });
+
+    blobStream.on('finish', async () => {
+      // Gambar berhasil diunggah, dapatkan URL gambar dari Cloud Storage
+      const imageUrl = `https://storage.googleapis.com/${bucketName}/${imageBlob.name}`;
+
+      // Gunakan parameterized query untuk mencegah SQL injection
+      const [result] = await db.query('INSERT INTO RecyclingHistories (wasteImage, recycledProduct) VALUES (?, ?)', [imageUrl, recycledProduct]);
+
+      const newHistoryId = result.insertId;
+
+      res.json({
+        success: true,
+        message: 'Recycling history added successfully',
+        historyEntry: { id: newHistoryId, wasteImage: imageUrl, recycledProduct },
+      });
+    });
+
+    blobStream.end(req.file.buffer);
   } catch (error) {
     console.error('Failed to add recycling history:', error);
     res.status(500).json({ success: false, error: 'Failed to add recycling history' });
   }
 };
+
 
 const deleteRecyclingHistory = async (req, res) => {
   try {
