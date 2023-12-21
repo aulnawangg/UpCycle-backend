@@ -25,12 +25,14 @@ app.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Password tidak memenuhi syarat" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+   //const email = req.body.email || null;
+   //const hashedPassword = req.body.hashedPassword || null;
+   const hashedPassword = await bcrypt.hash(password, 10);
 
-    const [newUser] = await db.execute(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, hashedPassword]
-    );
+const [newUser] = await db.execute(
+  'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+  [username, email, hashedPassword]
+);
 
     res.json({ message: "Pendaftaran berhasil", user: newUser[0] });
   } catch (error) {
@@ -76,7 +78,7 @@ app.post("/login", async (req, res) => {
     }
   } catch (error) {
     console.error("Gagal login:", error);
-    res.status(500).json({ error: "Gagal login" });
+    res.status(500).json({ error: 'Gagal login', details: error });
   }
 });
 
