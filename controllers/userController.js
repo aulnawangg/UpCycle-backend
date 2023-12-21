@@ -13,7 +13,7 @@ const getUserList = async (req, res) => {
     }
 
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('SELECT id, username, email FROM Users WHERE id = ?', [userId]);
+    const [result] = await db.query('SELECT id, username, email FROM users WHERE id = ?', [userId]);
 
     if (result.length > 0) {
       const user = result[0];
@@ -30,7 +30,7 @@ const getUserList = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('SELECT * FROM Users');
+    const [result] = await db.query('SELECT * FROM users');
 
     res.json({ message: 'Data semua pengguna berhasil diambil', users: result });
   } catch (error) {
@@ -44,7 +44,7 @@ const updateUser = async (req, res) => {
 
   try {
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('UPDATE Users SET ? WHERE id = ?', [newData, userId]);
+    const [result] = await db.query('UPDATE users SET ? WHERE id = ?', [newData, userId]);
 
     if (result.affectedRows === 1) {
       res.json({ message: 'Data pengguna berhasil diperbarui', updatedUser: newData });
@@ -62,7 +62,7 @@ const updateUserImage = async (req, res) => {
 
   try {
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('UPDATE Users SET image = ? WHERE id = ?', [newImage, userId]);
+    const [result] = await db.query('UPDATE users SET image = ? WHERE id = ?', [newImage, userId]);
 
     if (result.affectedRows === 1) {
       res.json({ message: 'Gambar pengguna berhasil diperbarui', updatedImage: newImage });
@@ -98,7 +98,7 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('INSERT INTO Users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
+    const [result] = await db.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
 
     const newUser = { id: result.insertId, username, email };
 
@@ -164,7 +164,7 @@ const changePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('UPDATE Users SET password = ? WHERE ?', [hashedPassword, userId ? { id: userId } : { email: email }]);
+    const [result] = await db.query('UPDATE users SET password = ? WHERE ?', [hashedPassword, userId ? { id: userId } : { email: email }]);
 
     if (result.affectedRows === 1) {
       return res.json({ message: "Password Berhasil Diperbarui" });
@@ -180,7 +180,7 @@ const changePassword = async (req, res) => {
 // Fungsi helper untuk mendapatkan pengguna berdasarkan email
 const getUserByEmail = async (email) => {
   // Gunakan parameterized query untuk mencegah SQL injection
-  const [result] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
+  const [result] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
   return result.length > 0 ? result[0] : null;
 };
 

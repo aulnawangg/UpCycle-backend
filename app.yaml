@@ -1,4 +1,4 @@
-runtime: nodejs14
+runtime: nodejs20
 entrypoint: server.js
 
 env_variables:

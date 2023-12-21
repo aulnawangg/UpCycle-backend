@@ -5,7 +5,7 @@ const addRecyclingHistory = async (req, res) => {
     const { wasteImage, recycledProduct } = req.body;
     
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('INSERT INTO RecyclingHistories (wasteImage, recycledProduct) VALUES (?, ?)', [wasteImage, recycledProduct]);
+    const [result] = await db.query('INSERT INTO recyclinghistories (wasteImage, recycledProduct) VALUES (?, ?)', [wasteImage, recycledProduct]);
 
     const newHistoryId = result.insertId;
 
@@ -25,7 +25,7 @@ const deleteRecyclingHistory = async (req, res) => {
     const historyId = req.params.historyId;
     
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('DELETE FROM RecyclingHistories WHERE id = ?', [historyId]);
+    const [result] = await db.query('DELETE FROM recyclinghistories WHERE id = ?', [historyId]);
 
     if (result.affectedRows > 0) {
       res.json({
@@ -46,7 +46,7 @@ const getRecyclingHistoryById = async (req, res) => {
     const historyId = req.params.historyId;
     
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('SELECT * FROM RecyclingHistories WHERE id = ?', [historyId]);
+    const [result] = await db.query('SELECT * FROM recyclinghistories WHERE id = ?', [historyId]);
 
     if (result.length > 0) {
       const recyclingHistory = result[0];
@@ -67,12 +67,12 @@ const getRecyclingHistoryById = async (req, res) => {
 const getAllRecyclingHistories = async (req, res) => {
   try {
     // Gunakan parameterized query untuk mencegah SQL injection
-    const [result] = await db.query('SELECT * FROM RecyclingHistories');
+    const [result] = await db.query('SELECT * FROM recyclinghistories');
 
     res.json({
       success: true,
       message: 'All recycling histories retrieved successfully',
-      recyclingHistories: result,
+      recyclinghistories: result,
     });
   } catch (error) {
     console.error('Failed to retrieve all recycling histories:', error);
@@ -81,4 +81,4 @@ const getAllRecyclingHistories = async (req, res) => {
 };
 
 // Export fungsi-fungsi yang telah diubah
-module.exports = { addRecyclingHistory, deleteRecyclingHistory, getRecyclingHistoryById, getAllRecyclingHistories };
+module.exports = { addRecyclingHistory, deleteRecyclingHistory, getRecyclingHistoryById, getAllRecyclingHistories};

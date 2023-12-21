@@ -8,7 +8,6 @@ const recyclingHistoryRoutes = require('./routes/recyclingHistoryRoutes');
 const db = require('./db');
 
 const app = express();
-const port = 8081;
 
 app.use(bodyParser.json());
 
@@ -29,7 +28,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [newUser] = await db.execute(
-      'INSERT INTO Users (username, email, password) VALUES (?, ?, ?)',
+      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
       [username, email, hashedPassword]
     );
 
@@ -37,20 +36,17 @@ app.post("/register", async (req, res) => {
   } catch (error) {
     console.error("Gagal mendaftar:", error);
 
-    if (error.name === "SequelizeValidationError") {
-      const validationErrors = error.errors.map((error) => ({
-        field: error.path,
-        message: error.message,
-      }));
-      res.status(400).json({ error: "Gagal mendaftar", validationErrors });
+    if (error.code === 'ER_DUP_ENTRY') {
+      // Kesalahan jika terdapat entri duplikat (misalnya, email yang sudah terdaftar)
+      res.status(400).json({ error: "Email sudah terdaftar" });
     } else {
-      res.status(500).json({ error: "Gagal mendaftar" });
+      res.status(500).json({ error: "Gagal mendaftar", details: error });
     }
   }
 });
 
 function isValidPassword(password) {
-  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\-]).{8,}$/;
+  const passwordRegex = /^.{8,}$/;
   return passwordRegex.test(password);
 }
 
@@ -60,7 +56,7 @@ app.post("/login", async (req, res) => {
 
   try {
     const [user] = await db.execute(
-      'SELECT * FROM Users WHERE email = ?',
+      'SELECT * FROM users WHERE email = ?',
       [email]
     );
 
@@ -88,6 +84,7 @@ app.post("/login", async (req, res) => {
 app.use('/api', userRoutes);
 app.use('/api', recyclingHistoryRoutes);
 
+const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {
-  console.log(`Server berjalan di http://localhost:${port}`);
+    console.log('helloworld: listening on port ${port}');
 });

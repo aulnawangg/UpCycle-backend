@@ -1,15 +1,13 @@
-const { createPool } = require('mysql2');
-require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-const pool = createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'db_upcycle',
-  port: process.env.DB_PORT || 3306,
-  connectionLimit: 10,
+const pool = mysql.createPool({
+    host : '34.101.193.17',
+    user: 'upcycle',
+    password: 'ch2-ps221', // replace with your root password
+    database: 'db_upcycle', // replace with your database name
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
 });
 
-const db = pool.promise();
-
-module.exports = db;
+module.exports = pool;
