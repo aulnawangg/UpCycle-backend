@@ -1,5 +1,8 @@
 const { Storage } = require('@google-cloud/storage');
 const db = require('../db');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const authenticateToken = require('../middleware/authMiddleware');
 
 // Inisialisasi klien Cloud Storage
 const storage = new Storage();
@@ -25,7 +28,7 @@ const addRecyclingHistory = async (req, res) => {
       const imageUrl = `https://storage.googleapis.com/${bucketName}/${imageBlob.name}`;
 
       // Gunakan parameterized query untuk mencegah SQL injection
-      const [result] = await db.query('INSERT INTO RecyclingHistories (wasteImage, recycledProduct) VALUES (?, ?)', [imageUrl, recycledProduct]);
+      const [result] = await db.query('INSERT INTO recyclinghistories (wasteImage, recycledProduct) VALUES (?, ?)', [imageUrl, recycledProduct]);
 
       const newHistoryId = result.insertId;
 

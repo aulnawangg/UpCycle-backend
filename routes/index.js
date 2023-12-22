@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const recyclingHistoryController = require('../controllers/recyclingHistoryController');
+const authenticateToken = require('../middleware/authMiddleware');
 const db = require('../db');
 
 router.post('/register', userController.registerUser);

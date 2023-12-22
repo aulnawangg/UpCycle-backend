@@ -3,16 +3,20 @@ const router = express.Router();
 const { Storage } = require('@google-cloud/storage');
 const db = require('../db');
 const storage = new Storage();
+const multer = require('multer');
+const bucketName = 'bucket_upcycle'; 
+const authenticateToken = require('../middleware/authMiddleware');
 
-const bucketName = 'bucket_upcycle'; // Ganti dengan nama bucket Cloud Storage Anda
+// Inisialisasi multer untuk menangani upload file
+const upload = multer({ dest: 'uploads/' });
 
-router.post('/recycle', async (req, res) => {
+router.post('/recycle', upload.single('wasteImage'), async (req, res) => {
   const { recycledProduct } = req.body;
   const wasteImage = req.file; // req.file akan berisi informasi tentang file gambar yang diunggah
 
   try {
     // Upload gambar ke Cloud Storage
-    const imageBlob = storage.bucket(bucketName).file(wasteImage.originalname);
+    const imageBlob = storage.bucket(bucketName).file(wasteImage.filename);
     const blobStream = imageBlob.createWriteStream();
 
     blobStream.on('error', (err) => {
@@ -25,7 +29,7 @@ router.post('/recycle', async (req, res) => {
       const imageUrl = `https://storage.googleapis.com/${bucketName}/${imageBlob.name}`;
 
       // Gunakan parameterized query untuk mencegah SQL injection
-      const [result] = await db.query('INSERT INTO RecyclingHistories (wasteImage, recycledProduct) VALUES (?, ?)', [imageUrl, recycledProduct]);
+      const [result] = await db.query('INSERT INTO recyclinghistories (wasteImage, recycledProduct) VALUES (?, ?)', [imageUrl, recycledProduct]);
 
       const newHistoryId = result.insertId;
 
@@ -46,7 +50,7 @@ router.post('/recycle', async (req, res) => {
 router.delete('/recycle/:historyId', async (req, res) => {
   const historyId = req.params.historyId;
   try {
-    const deletedHistory = await db.execute('DELETE FROM RecyclingHistories WHERE id = ?', [historyId]);
+    const deletedHistory = await db.execute('DELETE FROM recyclinghistories WHERE id = ?', [historyId]);
 
     if (deletedHistory[0].affectedRows > 0) {
       res.json({
@@ -65,7 +69,7 @@ router.delete('/recycle/:historyId', async (req, res) => {
 router.get('/recycle/list/:historyId', async (req, res) => {
   const historyId = req.params.historyId;
   try {
-    const [recyclingHistory] = await db.execute('SELECT * FROM RecyclingHistories WHERE id = ?', [historyId]);
+    const [recyclingHistory] = await db.execute('SELECT * FROM recyclinghistories WHERE id = ?', [historyId]);
 
     if (recyclingHistory.length > 0) {
       res.json({
@@ -84,7 +88,7 @@ router.get('/recycle/list/:historyId', async (req, res) => {
 
 router.get('/recycle', async (req, res) => {
   try {
-    const [recyclingHistories] = await db.execute('SELECT * FROM RecyclingHistories');
+    const [recyclingHistories] = await db.execute('SELECT * FROM recyclinghistories');
 
     res.json({
       success: true,
@@ -97,4 +101,4 @@ router.get('/recycle', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router, upload;

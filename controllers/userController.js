@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require("validator");
 const db = require('../db');
+const authenticateToken = require('../middleware/authMiddleware');
 
 
 const getUserList = async (req, res) => {
